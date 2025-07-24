@@ -1,34 +1,67 @@
-#first create a folder - mkdir ~/docker-prometheus
-#create a file - docker-compose.yml inside it with the following contents
-#you also need to copy prometheus.yml file inside the same directory
-
-version: '3.2'
+# docker-compose.yml
 services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/usr/src/app
+    environment:
+      - NODE_ENV=development
+      - MONGO_URI=mongodb+srv://yuvrajrathod870:root@docket-deploy.bdlodpz.mongodb.net/student-registration?retryWrites=true&w=majority&appName=Docket-Deploy
+    depends_on:
+      - mongo
+    networks:
+      - app-network
+
+  # MongoDB
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - app-network
+
+  # Prometheus
   prometheus:
     image: prom/prometheus:latest
-    container_name: prometheus
-    ports:
-    - 9090:9090
-    command:
-    - --config.file=/etc/prometheus/prometheus.yml
     volumes:
-    - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    networks:
+      - app-network
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:10.0.3
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - "3001:3000"
+    networks:
+      - app-network
     depends_on:
-    - cadvisor
+      - prometheus
+
+  # cAdvisor
   cadvisor:
-    image: gcr.io/google-containers/cadvisor:latest
-    container_name: cadvisor
+    image: gcr.io/cadvisor/cadvisor:latest
     ports:
-    - 8080:8080
+      - "8080:8080"
+    networks:
+      - app-network
     volumes:
-    - /:/rootfs:ro
-    - /var/run:/var/run:rw
-    - /sys:/sys:ro
-    - /var/lib/docker/:/var/lib/docker:ro
-    depends_on:
-    - redis
-  redis:
-    image: redis:latest
-    container_name: redis
-    ports:
-    - 6379:6379
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+
+volumes:
+  mongodb_data:
+
+networks:
+  app-network:
+    driver: bridge
