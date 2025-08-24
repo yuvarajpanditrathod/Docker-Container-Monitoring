@@ -1,4 +1,4 @@
-# docker-monitoring
+# Docker Monitoring
 monitoring docker containers using cadvisor, prometheus,redis and grafana
 # run - docker-compose up
 if everything is working good, you should see this message <br>
